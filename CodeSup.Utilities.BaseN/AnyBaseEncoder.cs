@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Globalization;
 using System.Numerics;
+using System.Text;
 
 namespace CodeSup.Utilities.BaseN {
 	/// <summary>
@@ -114,41 +116,35 @@ namespace CodeSup.Utilities.BaseN {
 
 		public string Encode(Guid guid) {
 			byte[] guidBytes = guid.ToByteArray();
-			BigInteger unsignedValue = new BigInteger(guidBytes) + Min128Inv;
-			return Encode(unsignedValue);
+			return Encode(guidBytes);
 		}
 
 		public string Encode(byte[] bytes) {
+			// make little endian
+			Array.Reverse(bytes);
 			BigInteger guidInt = new BigInteger(bytes);
 			return Encode(guidInt);
 		}
 
 		public string Encode(BigInteger bigInt) {
-			int intLength = bigInt.ToByteArray().Length * 8;
-			int i = intLength;
-			char[] buffer = new char[i];
-			BigInteger value = BigInteger.Abs(bigInt);
+			BigInteger value = bigInt + Min128Inv;
+			StringBuilder stringBuilder = new StringBuilder();
 			do {
-				buffer[--i] = _alphabet[(int)(value % _targetBase)];
-				value = value / _targetBase;
+				BigInteger remainder;
+				value = BigInteger.DivRem(value, _targetBase, out remainder);
+				stringBuilder.Append(_alphabet[(int)remainder]);
 			}
-			while (value != 0);
-
-			char[] result = new char[intLength - i];
-			Array.Copy(buffer, i, result, 0, intLength - i);
-
-			return (bigInt.Sign == -1 ? "-" : "") + new string(result);
+			while (value > 0);
+			return stringBuilder.ToString();
 		}
 
 		public BigInteger Decode(char[] encoded) {
 			BigInteger sum = 0;
-			int sign = encoded[0] == '-' ? -1 : 1;
-			int signOffset = encoded[0] == '+' || encoded[0] == '-' ? 1 : 0;
-			int charLen = encoded.Length - signOffset;
+			int charLen = encoded.Length;
 			for (int i = 0; i < charLen; i++) {
-				sum += (BigInteger.Pow(_targetBase, (charLen - i - 1)) * Array.IndexOf(_alphabet, encoded[i + signOffset]));
+				sum += (BigInteger.Pow(_targetBase, i) * Array.IndexOf(_alphabet, encoded[i]));
 			}
-			return sum * sign;
+			return sum - Min128Inv;
 		}
 
 		public BigInteger Decode(string encoded) {
@@ -156,23 +152,11 @@ namespace CodeSup.Utilities.BaseN {
 		}
 
 		public Guid DecodeGuid(string encoded) {
-			BigInteger bigInt = Decode(encoded) - Min128Inv;
-			return new Guid(bigInt.ToByteArray());
+			BigInteger bigInt = Decode(encoded);
+			byte[] bytes = bigInt.ToByteArray();
+			Array.Reverse(bytes);
+			return new Guid(bytes);
 		}
 
-		private static byte[] Repeat(byte b, int len) {
-			byte[] result = new byte[len];
-			for (int i = 0; i < len; i++) {
-				result[i] = b;
-			}
-			return result;
-		}
-
-		private static byte[] Concat(byte[] arr, params byte[] more) {
-			byte[] result = new byte[arr.Length + more.Length];
-			Array.Copy(arr, result, arr.Length);
-			Array.Copy(more, 0, result, arr.Length, more.Length);
-			return result;
-		}
 	}
 }

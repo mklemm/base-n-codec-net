@@ -8,19 +8,40 @@ namespace CodeSup.Utilities.BaseN {
 		public static readonly AnyBaseEncoder Base36Encoder = new AnyBaseEncoder(36);
 
 		[TestMethod]
-		public void TestEncode() {
-			//printAll();
-			PrintMinMax(128);
-			PrintMinMax(64);
-			PrintMinMax(32);
-			PrintMinMax(16);
-			PrintMinMax(8);
+		public void TestEncodeGuid() {
 			Guid guid = Guid.NewGuid();
 			Console.WriteLine("GUID: {0}", guid);
 			string encoded = Base36Encoder.Encode(guid);
 			Console.WriteLine("GUID enc: {0}", encoded);
-			Console.WriteLine("GUID dec: {0}", Base36Encoder.DecodeGuid(encoded));
-			Console.ReadLine();
+			Guid decodedGuid = Base36Encoder.DecodeGuid(encoded);
+			Console.WriteLine("GUID dec: {0}", decodedGuid);
+			Assert.AreEqual(guid, decodedGuid);
+		}
+
+		[TestMethod]
+		public void TestEncodeBigInteger() {
+			BigInteger bigInteger = BigInteger.Parse("1234567890123456789012345678901234567890");
+			Console.WriteLine("BigInteger: {0}", bigInteger);
+			string encoded = Base36Encoder.Encode(bigInteger);
+			Console.WriteLine("BigInteger enc: {0}", encoded);
+			BigInteger decoded = Base36Encoder.Decode(encoded);
+			Console.WriteLine("BigInteger dec: {0}", decoded);
+			Assert.AreEqual(bigInteger, decoded);
+		}
+
+		[TestMethod]
+		public void testCanonical() {
+			//printAll();
+//			PrintMinMax(128);
+//			PrintMinMax(64);
+//			PrintMinMax(32);
+//			PrintMinMax(16);
+//			PrintMinMax(8);
+			Guid guid = new Guid("eab02684-03a7-4d99-bd10-edd7bf2445ae");
+			Console.WriteLine("GUID: " + guid);
+			string encoded = Base36Encoder.Encode(guid);
+			Console.WriteLine("GUID enc: " + encoded);
+			Assert.AreEqual("2ZGFQE37T37MMRY3M4QZ1IU8", encoded);
 		}
 
 		private void printAll() {
@@ -59,6 +80,27 @@ namespace CodeSup.Utilities.BaseN {
 			Console.WriteLine("dec {1}(10): {0}", decoded, name);
 		}
 
-
+		[TestMethod]
+		public void TestOften() {
+			BigInteger bigInteger = BigInteger.Parse("1234567890123456789012345678901234567890");
+			const int iterationCount = 100000;
+			string[] resStrings = new string[iterationCount];
+			DateTime encodeStartTime = DateTime.Now;
+			for (int i = 0; i < iterationCount; i++) {
+				resStrings[i] = Base36Encoder.Encode(bigInteger);
+			}
+			DateTime encodeEndTime = DateTime.Now;
+			Assert.AreEqual(iterationCount, resStrings.Length);
+			string encstr = "2ZGFQE37T37MMRY3M4QZ1IU8";
+			BigInteger[] resBigInteger = new BigInteger[iterationCount];
+			DateTime decodeStartTime = DateTime.Now;
+			for (int i = 0; i < iterationCount; i++) {
+				resBigInteger[i] = Base36Encoder.Decode(encstr);
+			}
+			DateTime decodeEndTime = DateTime.Now;
+			Assert.AreEqual(iterationCount, resBigInteger.Length);
+			Console.WriteLine("Encoding time: " + (encodeEndTime - encodeStartTime).TotalMilliseconds);
+			Console.WriteLine("Decoding time: " + (decodeEndTime - decodeStartTime).TotalMilliseconds);
+		}
 	}
 }
